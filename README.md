@@ -2,10 +2,11 @@
 
 ## Kelompok
 
-Nama | NRP
---- | ---
-Amoes Noland | 5027231028
-Rafi' Afnaan Fathurrahman | 5027231040
+| Nama                        | NRP        |
+| --------------------------- | ---------- |
+| Syifa Nurul Alfiah          | 5027241019 |
+| Alnico Virendra Kitaro Diaz | 5027241081 |
+| Hafiz Ramadhan              | 5027241096 |
 
 ## Daftar Isi
 
