@@ -7,4 +7,4 @@ typedef char bool;
 #define true 1
 #define false 0
 
-#endif // __STD_YPE_H__
+#endif
