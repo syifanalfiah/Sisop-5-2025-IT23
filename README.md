@@ -171,6 +171,11 @@ Pada suatu hari, anda merasa sangat lelah dari segala macam praktikum yang sudah
    * `link` : menggabungkan `bootloader.bin`, `kernel.o`, `kernel_asm.o`, dan `std_lib.o` menjadi `floppy.img`.
    * `build` : menjalankan perintah `prepare`, `bootloader`, `stdlib`, `kernel`, dan `link`.
 
+### MAKE BUILD
+- `bochs -f bochsrc.txt -q`
+- `c`
+- `make clean` (buat ngehapus bin)
+
 ### Video Demonstrasi
 
 [Akses Video dalam Assets](./assets/demo.mp4)
@@ -180,7 +185,7 @@ https://github.com/user-attachments/assets/1cfa66b1-b2f5-4e3e-a4b2-ec8b012f6fbb
 
 ## Laporan
 
-### 1. The Echo
+## 1. The Echo
 Shell dapat mengenali input yang tidak dikenali sebagai perintah dan akan mencetak kembali input tersebut, merepresentasikan kemampuan "The Echo" dari karakter utama.
 
 
@@ -231,11 +236,45 @@ user> Hello!
 Hello!
 ```
 
-### 2. Fitur gurt
+## 2. Fitur gurt
 Implementasi sistem `gurt` yang akan mengeluarkan `yo` saat pengguna mengetik `gurt`, dan sebaliknya. Ditambahkan juga perintah `yogurt` yang akan menampilkan salah satu dari tiga kemungkinan output secara acak:
 - `yo`
 - `ts unami gng </3`
 - `sygau`
+
+### 📌 Penjelasan Fitur "gurt"
+Tujuan:
+Jika user mengetik `gurt`, maka output-nya adalah `yo`.
+
+Jika user mengetik `yo`, maka output-nya adalah `gurt`.
+
+Jika user mengetik `yogurt`, maka akan ditampilkan salah satu dari 3 output secara acak:
+
+1. `yo`
+
+2. `ts unami gng </3`
+
+3. `sygau`
+
+### 🔧 Implementasi
+
+```C
+if (input == "yo") {
+    print("gurt");
+}
+else if (input == "gurt") {
+    print("yo");
+}
+else if (input == "yogurt") {
+    // generate random number between 0 and 2
+    switch(rand() % 3) {
+        case 0: print("yo"); break;
+        case 1: print("ts unami gng </3"); break;
+        case 2: print("sygau"); break;
+    }
+}
+
+```
 
 Contoh:
 ```
@@ -243,8 +282,32 @@ user> yogurt
 gurt> ts unami gng </3
 ```
 
-### 3. Ganti Username
+## 3. Ganti Username
 Command `user <nama>` mengubah username shell sesuai input, sedangkan `user` mengembalikannya ke default `user`.
+
+### 📌 Perintah:
+user <nama> → Mengubah nama prompt menjadi <nama>.
+
+user → Mengembalikan nama prompt ke default, yaitu user.
+
+## 💡 Implementasi
+
+```c
+prompt = "user"
+
+while True:
+    input_cmd = input(f"{prompt}> ")
+    tokens = input_cmd.split()
+
+    if tokens[0] == "user":
+        if len(tokens) == 2:
+            prompt = tokens[1]
+            print(f"Username changed to {prompt}")
+        else:
+            prompt = "user"
+            print("Username changed to user")
+
+```
 
 Contoh:
 ```
@@ -262,6 +325,60 @@ Shell mendukung command untuk bergabung ke Grand Company, mengubah warna termina
 - `grandcompany immortalflames` → biru, `@Flame`
 - `clear` → netral (putih), hapus afiliasi Grand Company
 
+### 🎯 Tujuan Fitur
+
+Fitur ini memungkinkan pengguna shell untuk:
+
+1. Bergabung dengan salah satu dari 3 Grand Company.
+
+2. Shell akan menyesuaikan:
+
+  - Warna terminal.
+
+  - Nama prompt (menambahkan tag sesuai afiliasi).
+
+3. Perintah `clear` digunakan untuk:
+
+  - Menghapus afiliasi.
+
+  - Mengembalikan warna dan prompt ke kondisi default.
+
+## 🧩 Mapping Perintah dan Efeknya
+
+| Perintah                             | Warna Terminal     | Format Prompt       |
+|-------------------------------------|--------------------|---------------------|
+| `grandcompany maelstrom`            | Merah              | `<nama>@Storm`      |
+| `grandcompany twinadder`            | Kuning             | `<nama>@Serpent`    |
+| `grandcompany immortalflames`       | Biru               | `<nama>@Flame`      |
+| `clear`                             | Putih (netral)     | `<nama>`            |
+
+
+### 🧠 Implementasi
+
+```c
+prompt_name = "user"
+affiliation = None  # None, or 'Storm', 'Serpent', 'Flame'
+color = "white"
+
+input_cmd = input(f"{prompt_name}@{affiliation if affiliation else ''}> ")
+
+if input_cmd.startswith("grandcompany"):
+    _, gc = input_cmd.split()
+    if gc == "maelstrom":
+        affiliation = "Storm"
+        color = "red"
+    elif gc == "twinadder":
+        affiliation = "Serpent"
+        color = "yellow"
+    elif gc == "immortalflames":
+        affiliation = "Flame"
+        color = "blue"
+
+elif input_cmd == "clear":
+    affiliation = None
+    color = "white"
+
+```
 Contoh:
 ```
 user> grandcompany maelstrom
@@ -275,6 +392,38 @@ Shell mendukung 4 operasi matematika dasar dengan command:
 - `sub <x> <y>`
 - `mul <x> <y>`
 - `div <x> <y>`
+
+### 🎯 Tujuan Fitur
+Memberikan kemampuan bagi user untuk melakukan empat operasi matematika dasar langsung dari terminal shell, dengan sintaks sederhana.
+
+## 📊 Daftar Operasi
+
+| Command         | Fungsi                        | Contoh       | Output |
+|-----------------|-------------------------------|--------------|--------|
+| `add <x> <y>`   | Penjumlahan                   | `add 3 2`    | `5`    |
+| `sub <x> <y>`   | Pengurangan                   | `sub 5 8`    | `-3`   |
+| `mul <x> <y>`   | Perkalian                     | `mul 3 -2`   | `-6`   |
+| `div <x> <y>`   | Pembagian bilangan bulat      | `div 10 2`   | `5`    |
+
+### 🧠 Konsep
+
+```c
+cmd = input("> ")
+tokens = cmd.split()  # Misalnya: ['mul', '3', '-2']
+
+if tokens[0] == "add":
+    print(int(tokens[1]) + int(tokens[2]))
+elif tokens[0] == "sub":
+    print(int(tokens[1]) - int(tokens[2]))
+elif tokens[0] == "mul":
+    print(int(tokens[1]) * int(tokens[2]))
+elif tokens[0] == "div":
+    if int(tokens[2]) != 0:
+        print(int(tokens[1]) // int(tokens[2]))
+    else:
+        print("Error: Division by zero")
+
+```
 
 Contoh:
 ```
@@ -290,7 +439,37 @@ File `makefile` sudah lengkap dan dapat menjalankan semua tahapan:
 - `link` untuk menggabungkan semuanya
 - `build` sebagai shortcut untuk semua langkah di atas
 
-Build system dapat dijalankan hanya dengan:
+🎯 Tujuan Makefile
+Makefile ini digunakan untuk meng-otomatisasi proses build dari sistem, sehingga Anda cukup menjalankan satu perintah seperti:
+
+`make build`
+
+## ⚙️ Tahapan Build
+
+Makefile ini memiliki beberapa target:
+
+| Target      | Fungsi                                                                 |
+|-------------|------------------------------------------------------------------------|
+| `prepare`   | Membuat image kosong (misalnya `floppy.img`) sebagai media bootable.   |
+| `bootloader`| Meng-assemble bootloader (biasanya dari file `.asm`).                  |
+| `stdlib`    | Meng-compile pustaka dasar (`stdlib.c` atau sejenisnya).               |
+| `shell`     | Meng-compile file shell CLI yang digunakan.                            |
+| `kernel`    | Meng-compile file kernel utama dari OS buatan.                         |
+| `link`      | Menggabungkan semua bagian menjadi satu binary yang bisa dieksekusi.   |
+| `build`     | Shortcut: menjalankan semua target di atas secara berurutan.           |
+
+🔄 Cara Penggunaan
+Untuk menjalankan semua tahapan build secara otomatis:
+
 ```
 make build
 ```
+Biasanya ini akan menghasilkan file output seperti:
+
+- `floppy.img`
+
+- `kernel.bin`
+
+- `bootloader.bin`
+
+Image lengkap yang bisa dijalankan di Bochs atau QEMU.
