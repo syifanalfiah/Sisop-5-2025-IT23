@@ -183,6 +183,48 @@ https://github.com/user-attachments/assets/1cfa66b1-b2f5-4e3e-a4b2-ec8b012f6fbb
 ### 1. The Echo
 Shell dapat mengenali input yang tidak dikenali sebagai perintah dan akan mencetak kembali input tersebut, merepresentasikan kemampuan "The Echo" dari karakter utama.
 
+
+### 🔍 Penjelasan Fungsi Fitur:
+Shell akan:
+
+Menerima input dari user.
+
+Mengecek apakah input tersebut termasuk perintah yang dikenali, seperti:
+
+`change-username`
+
+`change-theme`
+
+`calc`
+
+`exit`, dsb.
+
+Jika tidak termasuk perintah-perintah tersebut, maka:
+
+Shell akan mencetak kembali (echo) teks input tersebut ke layar.
+
+### 🔧 Implementasi 
+```C
+while (true) {
+    printf("%s> ", username);        // Menampilkan prompt
+
+    fgets(input, sizeof(input), stdin); // Menerima input
+
+    if (strcmp(input, "exit\n") == 0) {
+        break;
+    } else if (strcmp(input, "change-username\n") == 0) {
+        // Jalankan fungsi ganti username
+    } else if (strcmp(input, "change-theme\n") == 0) {
+        // Jalankan fungsi ganti tema
+    } else if (strcmp(input, "calc\n") == 0) {
+        // Jalankan kalkulator
+    } else {
+        // Bagian ini adalah fitur "The Echo"
+        printf("%s", input);   // Cetak ulang input
+    }
+}
+
+```
 Contoh:
 ```
 user> Hello!
