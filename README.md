@@ -180,4 +180,75 @@ https://github.com/user-attachments/assets/1cfa66b1-b2f5-4e3e-a4b2-ec8b012f6fbb
 
 ## Laporan
 
-> Isi sesuai pengerjaan.
+### 1. The Echo
+Shell dapat mengenali input yang tidak dikenali sebagai perintah dan akan mencetak kembali input tersebut, merepresentasikan kemampuan "The Echo" dari karakter utama.
+
+Contoh:
+```
+user> Hello!
+Hello!
+```
+
+### 2. Fitur gurt
+Implementasi sistem `gurt` yang akan mengeluarkan `yo` saat pengguna mengetik `gurt`, dan sebaliknya. Ditambahkan juga perintah `yogurt` yang akan menampilkan salah satu dari tiga kemungkinan output secara acak:
+- `yo`
+- `ts unami gng </3`
+- `sygau`
+
+Contoh:
+```
+user> yogurt
+gurt> ts unami gng </3
+```
+
+### 3. Ganti Username
+Command `user <nama>` mengubah username shell sesuai input, sedangkan `user` mengembalikannya ke default `user`.
+
+Contoh:
+```
+user> user Tia
+Username changed to Tia
+Tia> user
+Username changed to user
+```
+
+
+### 4. Grand Company
+Shell mendukung command untuk bergabung ke Grand Company, mengubah warna terminal dan nama prompt:
+- `grandcompany maelstrom` → merah, `@Storm`
+- `grandcompany twinadder` → kuning, `@Serpent`
+- `grandcompany immortalflames` → biru, `@Flame`
+- `clear` → netral (putih), hapus afiliasi Grand Company
+
+Contoh:
+```
+user> grandcompany maelstrom
+gurt@Storm> clear
+user>
+```
+
+### 5. Kalkulator
+Shell mendukung 4 operasi matematika dasar dengan command:
+- `add <x> <y>`
+- `sub <x> <y>`
+- `mul <x> <y>`
+- `div <x> <y>`
+
+Contoh:
+```
+user> mul 3 -2
+-6
+```
+
+### 6. Makefile
+File `makefile` sudah lengkap dan dapat menjalankan semua tahapan:
+- `prepare` untuk membuat floppy image
+- `bootloader` meng-assemble bootloader
+- `stdlib`, `shell`, `kernel` untuk meng-compile masing-masing bagian
+- `link` untuk menggabungkan semuanya
+- `build` sebagai shortcut untuk semua langkah di atas
+
+Build system dapat dijalankan hanya dengan:
+```
+make build
+```
