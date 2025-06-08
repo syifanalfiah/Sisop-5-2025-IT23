@@ -300,7 +300,7 @@ _getBiosTick:
 
 > Memanggil `int 1Ah` (BIOS Time of Day) untuk mendapatkan nilai tick (jumlah waktu sejak booting). Hasil digunakan di shell untuk fungsi acak seperti `yogurt`.
 
-### Fungsi `_putInMemory`
+##### Fungsi `_putInMemory`
 
 ```asm
 _putInMemory:
