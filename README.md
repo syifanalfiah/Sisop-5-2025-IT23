@@ -185,291 +185,621 @@ https://github.com/user-attachments/assets/1cfa66b1-b2f5-4e3e-a4b2-ec8b012f6fbb
 
 ## Laporan
 
-## 1. The Echo
-Shell dapat mengenali input yang tidak dikenali sebagai perintah dan akan mencetak kembali input tersebut, merepresentasikan kemampuan "The Echo" dari karakter utama.
+### Laporan Presentasi Modul 5 Sistem Operasi
 
+#### EorzeOS: Shell, Command Parsing, dan Utilitas Interaktif
 
-### 🔍 Penjelasan Fungsi Fitur:
-Shell akan:
+#### Struktur File Proyek
 
-Menerima input dari user.
+* `bootloader.asm`: Memuat kernel dari disk ke memori.
+* `kernel.asm`: Implementasi fungsi level rendah seperti interrupt dan video memory.
+* `kernel.c`: Fungsi-fungsi kernel seperti `printString`, `readString`, dan `clearScreen`.
+* `shell.c`: Logika shell dan parsing command.
+* `std_lib.c`: Fungsi bantu seperti `div`, `mod`, `atoi`, `itoa`, `strcmp`, dll.
+* `*.h`: Header deklarasi fungsi dan tipe data.
+* `bochsrc.txt`: Konfigurasi Bochs.
+* `makefile`: Build system untuk generate `floppy.img`.
 
-Mengecek apakah input tersebut termasuk perintah yang dikenali, seperti:
+#### Tujuan Tugas
 
-`change-username`
+Membuat sistem operasi dasar bernama EorzeOS dengan shell interaktif yang memiliki fitur:
 
-`change-theme`
+1. Echo command.
+2. Mapping command `yo <-> gurt`.
+3. Mengganti username dengan command `user`.
+4. Mengatur tema terminal via `grandcompany`.
+5. Kalkulator dasar (`add`, `sub`, `mul`, `div`).
+6. Respon acak terhadap `yogurt`.
 
-`calc`
+#### Perubahan yang Dilakukan
 
-`exit`, dsb.
+## `kernel.c`
 
-Jika tidak termasuk perintah-perintah tersebut, maka:
+File `kernel.c` berisi implementasi dari fungsi-fungsi utama kernel untuk berinteraksi dengan pengguna dan perangkat keras melalui interrupt BIOS. Fungsi-fungsi ini dipanggil dari `shell.c`.
 
-Shell akan mencetak kembali (echo) teks input tersebut ke layar.
+---
 
-### 🔧 Implementasi 
-```C
-while (true) {
-    printf("%s> ", username);        // Menampilkan prompt
+### Fungsi `main`
 
-    fgets(input, sizeof(input), stdin); // Menerima input
+```c
+int main() {
+  clearScreen();
+  shell();
+}
+```
 
-    if (strcmp(input, "exit\n") == 0) {
-        break;
-    } else if (strcmp(input, "change-username\n") == 0) {
-        // Jalankan fungsi ganti username
-    } else if (strcmp(input, "change-theme\n") == 0) {
-        // Jalankan fungsi ganti tema
-    } else if (strcmp(input, "calc\n") == 0) {
-        // Jalankan kalkulator
-    } else {
-        // Bagian ini adalah fitur "The Echo"
-        printf("%s", input);   // Cetak ulang input
+> Saat kernel dijalankan, layar dibersihkan dan shell dimulai.
+
+### Fungsi `printString`
+
+```c
+void printString(char *str) {
+  int i = 0;
+  while (str[i] != 0) {
+    interrupt(0x10, 0x0E00 + str[i], 0, 0, 0);  // int 10h, teletype output
+    i++;
+  }
+}
+```
+
+> Mencetak string karakter demi karakter ke layar menggunakan interrupt BIOS `int 10h` (AH=0x0E). Ini adalah mode teletype yang langsung mencetak ke layar.
+
+### Fungsi `readString`
+
+```c
+void readString(char *buf) {
+  int i = 0;
+  char ch;
+  do {
+    ch = interrupt(0x16, 0x0000, 0, 0, 0);  // int 16h, keyboard input
+    if (ch == '\r') break;                // Enter
+    if (ch == '\b' && i > 0) {            // Backspace
+      i--;
+      printString("\b \b");
+    } else if (ch != '\b') {
+      buf[i++] = ch;
+      interrupt(0x10, 0x0E00 + ch, 0, 0, 0);
     }
+  } while (1);
+  buf[i] = 0;
 }
-
-```
-Contoh:
-```
-user> Hello!
-Hello!
 ```
 
-## 2. Fitur gurt
-Implementasi sistem `gurt` yang akan mengeluarkan `yo` saat pengguna mengetik `gurt`, dan sebaliknya. Ditambahkan juga perintah `yogurt` yang akan menampilkan salah satu dari tiga kemungkinan output secara acak:
-- `yo`
-- `ts unami gng </3`
-- `sygau`
+> Membaca input dari keyboard. Menangani `Enter` untuk mengakhiri input dan `Backspace` untuk menghapus karakter. Karakter ditampilkan di layar saat diketik.
 
-### 📌 Penjelasan Fitur "gurt"
-Tujuan:
-Jika user mengetik `gurt`, maka output-nya adalah `yo`.
+### Fungsi `clearScreen`
 
-Jika user mengetik `yo`, maka output-nya adalah `gurt`.
-
-Jika user mengetik `yogurt`, maka akan ditampilkan salah satu dari 3 output secara acak:
-
-1. `yo`
-
-2. `ts unami gng </3`
-
-3. `sygau`
-
-### 🔧 Implementasi
-
-```C
-if (input == "yo") {
-    print("gurt");
+```c
+void clearScreen() {
+  for (int i = 0; i < 80 * 25; i++) {
+    putInMemory(0xB800, i * 2, ' ');     // karakter kosong
+    putInMemory(0xB800, i * 2 + 1, 0x07); // warna putih
+  }
+  interrupt(0x10, 0x0200, 0, 0, 0); // reset posisi kursor
 }
-else if (input == "gurt") {
-    print("yo");
-}
-else if (input == "yogurt") {
-    // generate random number between 0 and 2
-    switch(rand() % 3) {
-        case 0: print("yo"); break;
-        case 1: print("ts unami gng </3"); break;
-        case 2: print("sygau"); break;
+```
+
+> Membersihkan seluruh layar (80 kolom × 25 baris) dengan karakter kosong dan warna putih. Menggunakan `putInMemory` untuk menulis ke memori video (`0xB800`). Kursor dikembalikan ke kiri atas.
+
+## `kernel.asm`
+
+File ini berisi implementasi tiga fungsi assembly penting untuk mendukung kernel:
+
+* `_putInMemory`: Menulis karakter ke alamat memori tertentu (digunakan untuk video).
+* `_interrupt`: Wrapper untuk pemanggilan interrupt (umum digunakan `int 10h` dan `int 16h`).
+* `_getBiosTick`: Mengambil nilai tick BIOS sebagai sumber nilai acak (digunakan di `yogurt`).
+
+### Fungsi `_getBiosTick`
+
+```asm
+_getBiosTick:
+    mov ah, 0x00
+    int 0x1A
+    mov ax, dx
+    mov dx, cx
+    ret
+```
+
+> Memanggil `int 1Ah` (BIOS Time of Day) untuk mendapatkan nilai tick (jumlah waktu sejak booting). Hasil digunakan di shell untuk fungsi acak seperti `yogurt`.
+
+### Fungsi `_putInMemory`
+
+```asm
+_putInMemory:
+    push bp
+    mov bp, sp
+    push ds
+    mov ax, [bp+4]  ; segment
+    mov si, [bp+6]  ; address (offset)
+    mov cl, [bp+8]  ; character
+    mov ds, ax
+    mov [si], cl
+    pop ds
+    pop bp
+    ret
+```
+
+> Menulis 1 byte ke memori fisik. Biasanya digunakan untuk mengisi buffer video di segmen `0xB800`.
+
+### Fungsi `_interrupt`
+
+```asm
+_interrupt:
+    push bp
+    mov bp, sp
+    mov ax, [bp+4]     ; interrupt number
+    push ds
+    mov bx, cs
+    mov ds, bx
+    mov si, intr
+    mov [si+1], al     ; set interrupt vector
+    pop ds
+
+    mov ax, [bp+6]     ; AX
+    mov bx, [bp+8]     ; BX
+    mov cx, [bp+10]    ; CX
+    mov dx, [bp+12]    ; DX
+
+intr:
+    int 0x00           ; akan diganti oleh [si+1] di atas
+
+    mov ah, 0
+    pop bp
+    ret
+```
+
+> Fungsi ini memungkinkan kita memanggil interrupt secara dinamis dari C, dengan mengatur nilai register dan nomor interrupt secara manual.
+
+##### shell.c
+
+File `shell.c` adalah inti dari antarmuka pengguna (user interface) di EorzeOS. Di dalamnya terdapat fungsi utama `shell()` yang menampilkan prompt, membaca input, dan mengeksekusi perintah. Command yang tersedia mencakup: echo, `user`, `grandcompany`, `clear`, kalkulator, `yo/gurt`, dan `yogurt`.
+
+
+###### Header dan Variabel Global
+
+```c
+#include "shell.h"
+#include "kernel.h"
+#include "std_lib.h"
+
+char username[64] = "user";
+char company[64] = "";
+int currentColor = 0x7;
+```
+
+> Menyimpan nama pengguna, nama perusahaan (jika bergabung dengan Grand Company), dan warna teks terminal saat ini.
+
+
+###### Fungsi `shell`
+
+Fungsi utama shell: mencetak prompt, membaca perintah, parsing, dan mengeksekusi perintah yang sesuai.
+
+```c
+void shell() {
+  char buf[128], cmd[64], arg[2][64];
+  printString("Welcome to EorzeOS!\n");
+
+  while (true) {
+    printString(username);
+    printString(company);
+    printString("> ");
+
+    clear(buf, 128);
+    readString(buf);
+
+    parseCommand(buf, cmd, arg);
+
+    if (strcmp(cmd, "user")) {
+      if (arg[0][0] != 0) {
+        strcpy(username, arg[0]);
+        printString("Username changed to ");
+        printString(username);
+      } else {
+        strcpy(username, "user");
+        printString("Username changed to user");
+      }
+      printString("\n");
     }
+
+    else if (strcmp(cmd, "grandcompany")) {
+      if (strcmp(arg[0], "maelstrom")) {
+        clearScreen();
+        currentColor = 0x4;
+        strcpy(company, "@Storm");
+      } else if (strcmp(arg[0], "twinadder")) {
+        clearScreen();
+        currentColor = 0xE;
+        strcpy(company, "@Serpent");
+      } else if (strcmp(arg[0], "immortalflames")) {
+        clearScreen();
+        currentColor = 0x1;
+        strcpy(company, "@Flame");
+      } else {
+        printString("Invalid grand company\n");
+      }
+    }
+
+    else if (strcmp(cmd, "clear")) {
+      clearScreen();
+      company[0] = 0;
+      currentColor = 0x7;
+    }
+
+    else if (strcmp(cmd, "add") || strcmp(cmd, "sub") || strcmp(cmd, "mul") || strcmp(cmd, "div")) {
+      int a, b;
+      atoi(arg[0], &a);
+      atoi(arg[1], &b);
+      int res = 0;
+
+      if (strcmp(cmd, "add")) res = a + b;
+      else if (strcmp(cmd, "sub")) res = a - b;
+      else if (strcmp(cmd, "mul")) res = a * b;
+      else if (strcmp(cmd, "div")) res = div(a, b);
+
+      char out[64];
+      itoa(res, out);
+      printString(out);
+      printString("\n");
+    }
+
+    else if (strcmp(cmd, "yo")) {
+      printString("gurt\n");
+    }
+
+    else if (strcmp(cmd, "gurt")) {
+      printString("yo\n");
+    }
+
+    else if (strcmp(cmd, "yogurt")) {
+      int r = getBiosTick() % 3;
+      if (r == 0) printString("yo\n");
+      else if (r == 1) printString("ts unami gng </3\n");
+      else printString("sygau\n");
+    }
+
+    else {
+      printString(buf);
+      printString("\n");
+    }
+  }
 }
-
 ```
 
-Contoh:
-```
-user> yogurt
-gurt> ts unami gng </3
-```
+###### Fungsi `parseCommand`
 
-## 3. Ganti Username
-Command `user <nama>` mengubah username shell sesuai input, sedangkan `user` mengembalikannya ke default `user`.
-
-### 📌 Perintah:
-user <nama> → Mengubah nama prompt menjadi <nama>.
-
-user → Mengembalikan nama prompt ke default, yaitu user.
-
-## 💡 Implementasi
+Memecah input menjadi command dan maksimal 2 argumen. Spasi digunakan sebagai delimiter.
 
 ```c
-prompt = "user"
+void parseCommand(char *buf, char *cmd, char arg[2][64]) {
+  clear(cmd, 64);
+  clear(arg[0], 64);
+  clear(arg[1], 64);
 
-while True:
-    input_cmd = input(f"{prompt}> ")
-    tokens = input_cmd.split()
+  int i = 0, j = 0, k = 0, arg_idx = 0;
 
-    if tokens[0] == "user":
-        if len(tokens) == 2:
-            prompt = tokens[1]
-            print(f"Username changed to {prompt}")
-        else:
-            prompt = "user"
-            print("Username changed to user")
+  while (buf[i] == ' ') i++; // skip leading spaces
 
+  // command
+  while (buf[i] != ' ' && buf[i] != 0) {
+    cmd[j++] = buf[i++];
+  }
+
+  while (arg_idx < 2) {
+    while (buf[i] == ' ') i++; // skip spaces
+    k = 0;
+    while (buf[i] != ' ' && buf[i] != 0) {
+      arg[arg_idx][k++] = buf[i++];
+    }
+    arg[arg_idx][k] = 0;
+    if (k == 0) break;
+    arg_idx++;
+  }
+}
 ```
 
-Contoh:
-```
-user> user Tia
-Username changed to Tia
-Tia> user
-Username changed to user
-```
+##### Ringkasan Fungsi Command
 
+| Command                       | Fungsi                                         | Output                         |
+| ----------------------------- | ---------------------------------------------- | ------------------------------ |
+| `user <nama>`                 | Ganti nama user                                | Username changed to \<nama>    |
+| `user`                        | Reset username ke "user"                       | Username changed to user       |
+| `grandcompany maelstrom`      | Clear + warna merah + `@Storm`                 | Terminal merah                 |
+| `grandcompany twinadder`      | Clear + warna kuning + `@Serpent`              | Terminal kuning                |
+| `grandcompany immortalflames` | Clear + warna biru + `@Flame`                  | Terminal biru                  |
+| `clear`                       | Bersihkan layar, reset warna dan grand company | Terminal putih                 |
+| `add`, `sub`, `mul`, `div`    | Kalkulator sederhana                           | Hasil perhitungan              |
+| `yo`                          | Output: `gurt`                                 | gurt                           |
+| `gurt`                        | Output: `yo`                                   | yo                             |
+| `yogurt`                      | Respon random dari 3 pilihan                   | yo / ts unami gng \</3 / sygau |
+| `<lain>`                      | Echo input                                     | Cetak ulang input              |
 
-### 4. Grand Company
-Shell mendukung command untuk bergabung ke Grand Company, mengubah warna terminal dan nama prompt:
-- `grandcompany maelstrom` → merah, `@Storm`
-- `grandcompany twinadder` → kuning, `@Serpent`
-- `grandcompany immortalflames` → biru, `@Flame`
-- `clear` → netral (putih), hapus afiliasi Grand Company
+##### std\_lib.c
 
-### 🎯 Tujuan Fitur
+File ini berisi berbagai fungsi utilitas dasar yang digunakan oleh kernel dan shell. Semua fungsi diimplementasikan manual tanpa mengandalkan operasi built-in seperti `/`, `%`, atau library eksternal. Fungsi-fungsi ini juga memperhatikan penanganan bilangan negatif, sesuai ketentuan soal.
 
-Fitur ini memungkinkan pengguna shell untuk:
+###### Fungsi `div`
 
-1. Bergabung dengan salah satu dari 3 Grand Company.
-
-2. Shell akan menyesuaikan:
-
-  - Warna terminal.
-
-  - Nama prompt (menambahkan tag sesuai afiliasi).
-
-3. Perintah `clear` digunakan untuk:
-
-  - Menghapus afiliasi.
-
-  - Mengembalikan warna dan prompt ke kondisi default.
-
-## 🧩 Mapping Perintah dan Efeknya
-
-| Perintah                             | Warna Terminal     | Format Prompt       |
-|-------------------------------------|--------------------|---------------------|
-| `grandcompany maelstrom`            | Merah              | `<nama>@Storm`      |
-| `grandcompany twinadder`            | Kuning             | `<nama>@Serpent`    |
-| `grandcompany immortalflames`       | Biru               | `<nama>@Flame`      |
-| `clear`                             | Putih (netral)     | `<nama>`            |
-
-
-### 🧠 Implementasi
+Melakukan pembagian dua bilangan bulat secara manual. Mendukung bilangan negatif.
 
 ```c
-prompt_name = "user"
-affiliation = None  # None, or 'Storm', 'Serpent', 'Flame'
-color = "white"
-
-input_cmd = input(f"{prompt_name}@{affiliation if affiliation else ''}> ")
-
-if input_cmd.startswith("grandcompany"):
-    _, gc = input_cmd.split()
-    if gc == "maelstrom":
-        affiliation = "Storm"
-        color = "red"
-    elif gc == "twinadder":
-        affiliation = "Serpent"
-        color = "yellow"
-    elif gc == "immortalflames":
-        affiliation = "Flame"
-        color = "blue"
-
-elif input_cmd == "clear":
-    affiliation = None
-    color = "white"
-
-```
-Contoh:
-```
-user> grandcompany maelstrom
-gurt@Storm> clear
-user>
+int div(int a, int b) {
+  int q = 0, neg = 0;
+  if (a < 0) a = -a, neg ^= 1;
+  if (b < 0) b = -b, neg ^= 1;
+  while (a >= b) a -= b, q++;
+  return neg ? -q : q;
+}
 ```
 
-### 5. Kalkulator
-Shell mendukung 4 operasi matematika dasar dengan command:
-- `add <x> <y>`
-- `sub <x> <y>`
-- `mul <x> <y>`
-- `div <x> <y>`
+---
 
-### 🎯 Tujuan Fitur
-Memberikan kemampuan bagi user untuk melakukan empat operasi matematika dasar langsung dari terminal shell, dengan sintaks sederhana.
+###### Fungsi `mod`
 
-## 📊 Daftar Operasi
-
-| Command         | Fungsi                        | Contoh       | Output |
-|-----------------|-------------------------------|--------------|--------|
-| `add <x> <y>`   | Penjumlahan                   | `add 3 2`    | `5`    |
-| `sub <x> <y>`   | Pengurangan                   | `sub 5 8`    | `-3`   |
-| `mul <x> <y>`   | Perkalian                     | `mul 3 -2`   | `-6`   |
-| `div <x> <y>`   | Pembagian bilangan bulat      | `div 10 2`   | `5`    |
-
-### 🧠 Konsep
+Menghitung sisa pembagian dua bilangan. Tidak menggunakan operator `%`. Mendukung bilangan negatif.
 
 ```c
-cmd = input("> ")
-tokens = cmd.split()  # Misalnya: ['mul', '3', '-2']
-
-if tokens[0] == "add":
-    print(int(tokens[1]) + int(tokens[2]))
-elif tokens[0] == "sub":
-    print(int(tokens[1]) - int(tokens[2]))
-elif tokens[0] == "mul":
-    print(int(tokens[1]) * int(tokens[2]))
-elif tokens[0] == "div":
-    if int(tokens[2]) != 0:
-        print(int(tokens[1]) // int(tokens[2]))
-    else:
-        print("Error: Division by zero")
-
+int mod(int a, int b) {
+  int neg = 0;
+  if (a < 0) a = -a, neg = 1;
+  if (b < 0) b = -b;
+  while (a >= b) a -= b;
+  return neg ? -a : a;
+}
 ```
 
-Contoh:
+---
+
+###### Fungsi `strcmp`
+
+Membandingkan dua string. Mengembalikan `true` jika isi dan panjang string sama, `false` jika berbeda.
+
+```c
+bool strcmp(char *str1, char *str2) {
+  int i = 0;
+  while (str1[i] != 0 && str2[i] != 0) {
+    if (str1[i] != str2[i]) return false;
+    i++;
+  }
+  return str1[i] == str2[i];
+}
 ```
-user> mul 3 -2
--6
+
+---
+
+###### Fungsi `strcpy`
+
+Menyalin isi dari string `src` ke `dst`. Berhenti saat menemukan null terminator (`'\0'`).
+
+```c
+void strcpy(char *dst, char *src) {
+  int i = 0;
+  while (src[i] != 0) {
+    dst[i] = src[i];
+    i++;
+  }
+  dst[i] = 0;
+}
 ```
 
-### 6. Makefile
-File `makefile` sudah lengkap dan dapat menjalankan semua tahapan:
-- `prepare` untuk membuat floppy image
-- `bootloader` meng-assemble bootloader
-- `stdlib`, `shell`, `kernel` untuk meng-compile masing-masing bagian
-- `link` untuk menggabungkan semuanya
-- `build` sebagai shortcut untuk semua langkah di atas
+---
 
-🎯 Tujuan Makefile
-Makefile ini digunakan untuk meng-otomatisasi proses build dari sistem, sehingga Anda cukup menjalankan satu perintah seperti:
+###### Fungsi `clear`
 
-`make build`
+Mengisi buffer sepanjang `size` dengan nilai 0. Umumnya digunakan untuk menginisialisasi array.
 
-## ⚙️ Tahapan Build
-
-Makefile ini memiliki beberapa target:
-
-| Target      | Fungsi                                                                 |
-|-------------|------------------------------------------------------------------------|
-| `prepare`   | Membuat image kosong (misalnya `floppy.img`) sebagai media bootable.   |
-| `bootloader`| Meng-assemble bootloader (biasanya dari file `.asm`).                  |
-| `stdlib`    | Meng-compile pustaka dasar (`stdlib.c` atau sejenisnya).               |
-| `shell`     | Meng-compile file shell CLI yang digunakan.                            |
-| `kernel`    | Meng-compile file kernel utama dari OS buatan.                         |
-| `link`      | Menggabungkan semua bagian menjadi satu binary yang bisa dieksekusi.   |
-| `build`     | Shortcut: menjalankan semua target di atas secara berurutan.           |
-
-🔄 Cara Penggunaan
-Untuk menjalankan semua tahapan build secara otomatis:
-
+```c
+void clear(byte *buf, unsigned int size) {
+  for (int i = 0; i < size; i++) {
+    buf[i] = 0;
+  }
+}
 ```
+
+---
+
+###### Fungsi `atoi`
+
+Mengonversi string angka ke integer. Mendukung bilangan negatif dan input seperti `"123"` atau `"-45"`.
+
+```c
+void atoi(char *str, int *num) {
+  int i = 0, result = 0, neg = 0;
+  if (str[0] == '-') {
+    neg = 1;
+    i++;
+  }
+  while (str[i] != 0) {
+    result = result * 10 + (str[i] - '0');
+    i++;
+  }
+  *num = neg ? -result : result;
+}
+```
+
+---
+
+###### Fungsi `itoa`
+
+Mengubah bilangan integer ke bentuk string. Mendukung bilangan negatif dan angka nol.
+
+```c
+void itoa(int num, char *str) {
+  int i = 0, neg = 0;
+  if (num == 0) {
+    str[0] = '0';
+    str[1] = 0;
+    return;
+  }
+  if (num < 0) {
+    neg = 1;
+    num = -num;
+  }
+  while (num > 0) {
+    str[i++] = (num % 10) + '0';
+    num /= 10;
+  }
+  if (neg) str[i++] = '-';
+  str[i] = 0;
+
+  // membalik string hasil
+  for (int j = 0; j < i / 2; j++) {
+    char tmp = str[j];
+    str[j] = str[i - j - 1];
+    str[i - j - 1] = tmp;
+  }
+}
+```
+
+#### Penjelasan Makefile
+
+##### `prepare`
+
+```makefile
+prepare:
+	mkdir -p bin
+	dd if=/dev/zero of=bin/floppy.img bs=512 count=2880
+```
+
+> Membuat direktori `bin` jika belum ada dan membuat image disket kosong bernama `floppy.img` sebesar 1.44 MB (512 × 2880 byte).
+
+* `dd` digunakan untuk membuat file kosong yang mensimulasikan isi disket.
+* `if=/dev/zero` berarti isi file diisi dengan byte 0.
+* `bs=512` adalah ukuran per blok.
+* `count=2880` adalah jumlah blok.
+
+##### `bootloader`
+
+```makefile
+bootloader:
+	nasm -f bin src/bootloader.asm -o bin/bootloader.bin
+	dd if=bin/bootloader.bin of=bin/floppy.img bs=512 count=1 conv=notrunc
+```
+
+> Mengkompilasi `bootloader.asm` menjadi file biner, lalu menyalin hasilnya ke sektor pertama `floppy.img`.
+
+* `nasm -f bin`: menghasilkan binary langsung dari assembly (bukan object file).
+* `conv=notrunc`: menjaga agar file `floppy.img` tidak dipotong setelah penulisan sector pertama.
+
+##### `stdlib`
+
+```makefile
+stdlib:
+	bcc -ansi -Iinclude -c src/std_lib.c -o bin/std_lib.o
+```
+
+> Mengkompilasi `std_lib.c` menjadi file object `.o` menggunakan **Bruce’s C Compiler (bcc)**, dengan include header dari folder `include`.
+
+* `-c`: hanya kompilasi, tidak link.
+* `-Iinclude`: menambahkan direktori `include/` ke path header.
+
+##### `shell`
+
+```makefile
+shell:
+	bcc -ansi -Iinclude -c src/shell.c -o bin/shell.o
+```
+
+> Kompilasi `shell.c` menjadi `shell.o`. Sama seperti target `stdlib`, digunakan untuk fungsi shell dan command.
+
+##### `kernel`
+
+```makefile
+kernel:
+	nasm -f as86 src/kernel.asm -o bin/kernel_asm.o
+	bcc -ansi -Iinclude -c src/kernel.c -o bin/kernel.o
+	ld86 -o bin/kernel.bin -d bin/kernel.o bin/kernel_asm.o bin/std_lib.o bin/shell.o
+	dd if=bin/kernel.bin of=bin/floppy.img bs=512 seek=1 conv=notrunc
+```
+
+> Kompilasi `kernel.asm` dan `kernel.c`, lalu **link semua object file menjadi `kernel.bin`**, dan salin hasilnya ke image floppy setelah sektor pertama.
+
+Langkah-langkah:
+
+1. `nasm -f as86`: mengkompilasi `kernel.asm` menjadi format object file `as86` (format untuk `ld86`).
+2. `bcc`: kompilasi `kernel.c`.
+3. `ld86`: linker untuk arsitektur 16-bit. Menggabungkan semua `.o` menjadi kernel yang bisa dieksekusi.
+4. `dd ... seek=1`: menulis `kernel.bin` ke `floppy.img`, dimulai dari sektor ke-1 (setelah bootloader).
+
+##### `link`
+
+```makefile
+link:
+	@echo "Linking done via dd in kernel step, no additional link step required."
+```
+
+> Tidak ada proses link tambahan. Semua link dilakukan di target `kernel`.
+
+* `@echo` hanya mencetak pesan.
+* `@` mencegah echoing command itu sendiri.
+
+##### `build`
+
+```makefile
+build: prepare bootloader stdlib shell kernel link
+```
+
+> Target utama. Menjalankan semua langkah dari awal:
+
+1. Membuat image floppy.
+2. Menyalin bootloader.
+3. Kompilasi semua komponen (std\_lib, shell, kernel).
+4. Menyalin hasil akhir ke image.
+5. Link otomatis dilakukan di `kernel`.
+
+##### `clean`
+
+```makefile
+clean:
+	rm -f bin/*.o bin/*.bin bin/*.img bin/kernel.bin
+```
+
+> Menghapus semua file hasil build:
+
+* File object `.o`
+* File binary `.bin`
+* Image `.img`
+* Kernel hasil akhir
+
+#### Langkah Build dan Eksekusi Bochs
+
+##### 1. Build OS
+
+Jalankan:
+
+```bash
 make build
 ```
-Biasanya ini akan menghasilkan file output seperti:
 
-- `floppy.img`
+##### 2. Jalankan Bochs
 
-- `kernel.bin`
+```bash
+bochs -f bochsrc.txt -q
+```
 
-- `bootloader.bin`
+##### 3. Di dalam Bochs
 
-Image lengkap yang bisa dijalankan di Bochs atau QEMU.
+```bash
+c
+```
+
+> `c` berarti continue eksekusi sistem operasi dalam emulator.
+
+#### Dokumentasi
+
+![image](https://github.com/user-attachments/assets/27dc0460-3a21-40a1-8048-dfdd61c7daf3)
+![image](https://github.com/user-attachments/assets/1c621c1f-13af-47e0-b0d5-166e0fc08d4a)
+![image](https://github.com/user-attachments/assets/e5051652-242b-4379-ad33-e18a0fc51720)
+![image](https://github.com/user-attachments/assets/b15c6d73-6d08-4b03-af97-ef7cc7c385be)
+![image](https://github.com/user-attachments/assets/c1dcb087-7a8d-4e71-a00a-851a74e442fe)
+
+
+#### Penutup
+
+Dengan menyelesaikan seluruh bagian tugas, praktikan berhasil membuat sistem operasi mini EorzeOS lengkap dengan:
+
+* Shell interaktif.
+* Username dan warna terminal dinamis.
+* Kalkulator.
+* Respons acak.
+* Penggunaan fungsi BIOS interrupt.
+* Kompatibilitas build dan run via Bochs.
