@@ -213,13 +213,11 @@ Membuat sistem operasi dasar bernama EorzeOS dengan shell interaktif yang memili
 
 #### Perubahan yang Dilakukan
 
-## `kernel.c`
+#### `kernel.c`
 
 File `kernel.c` berisi implementasi dari fungsi-fungsi utama kernel untuk berinteraksi dengan pengguna dan perangkat keras melalui interrupt BIOS. Fungsi-fungsi ini dipanggil dari `shell.c`.
 
----
-
-### Fungsi `main`
+##### Fungsi `main`
 
 ```c
 int main() {
@@ -230,7 +228,7 @@ int main() {
 
 > Saat kernel dijalankan, layar dibersihkan dan shell dimulai.
 
-### Fungsi `printString`
+##### Fungsi `printString`
 
 ```c
 void printString(char *str) {
@@ -244,7 +242,7 @@ void printString(char *str) {
 
 > Mencetak string karakter demi karakter ke layar menggunakan interrupt BIOS `int 10h` (AH=0x0E). Ini adalah mode teletype yang langsung mencetak ke layar.
 
-### Fungsi `readString`
+##### Fungsi `readString`
 
 ```c
 void readString(char *buf) {
@@ -267,7 +265,7 @@ void readString(char *buf) {
 
 > Membaca input dari keyboard. Menangani `Enter` untuk mengakhiri input dan `Backspace` untuk menghapus karakter. Karakter ditampilkan di layar saat diketik.
 
-### Fungsi `clearScreen`
+##### Fungsi `clearScreen`
 
 ```c
 void clearScreen() {
@@ -281,7 +279,7 @@ void clearScreen() {
 
 > Membersihkan seluruh layar (80 kolom × 25 baris) dengan karakter kosong dan warna putih. Menggunakan `putInMemory` untuk menulis ke memori video (`0xB800`). Kursor dikembalikan ke kiri atas.
 
-## `kernel.asm`
+#### `kernel.asm`
 
 File ini berisi implementasi tiga fungsi assembly penting untuk mendukung kernel:
 
@@ -289,7 +287,7 @@ File ini berisi implementasi tiga fungsi assembly penting untuk mendukung kernel
 * `_interrupt`: Wrapper untuk pemanggilan interrupt (umum digunakan `int 10h` dan `int 16h`).
 * `_getBiosTick`: Mengambil nilai tick BIOS sebagai sumber nilai acak (digunakan di `yogurt`).
 
-### Fungsi `_getBiosTick`
+##### Fungsi `_getBiosTick`
 
 ```asm
 _getBiosTick:
@@ -321,7 +319,7 @@ _putInMemory:
 
 > Menulis 1 byte ke memori fisik. Biasanya digunakan untuk mengisi buffer video di segmen `0xB800`.
 
-### Fungsi `_interrupt`
+##### Fungsi `_interrupt`
 
 ```asm
 _interrupt:
@@ -350,7 +348,7 @@ intr:
 
 > Fungsi ini memungkinkan kita memanggil interrupt secara dinamis dari C, dengan mengatur nilai register dan nomor interrupt secara manual.
 
-##### shell.c
+#### shell.c
 
 File `shell.c` adalah inti dari antarmuka pengguna (user interface) di EorzeOS. Di dalamnya terdapat fungsi utama `shell()` yang menampilkan prompt, membaca input, dan mengeksekusi perintah. Command yang tersedia mencakup: echo, `user`, `grandcompany`, `clear`, kalkulator, `yo/gurt`, dan `yogurt`.
 
