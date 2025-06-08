@@ -791,6 +791,8 @@ c
 ![image](https://github.com/user-attachments/assets/e5051652-242b-4379-ad33-e18a0fc51720)
 ![image](https://github.com/user-attachments/assets/b15c6d73-6d08-4b03-af97-ef7cc7c385be)
 ![image](https://github.com/user-attachments/assets/c1dcb087-7a8d-4e71-a00a-851a74e442fe)
+![image](https://github.com/user-attachments/assets/dd7093ae-51ed-40cf-99fc-607fb23a6f44)
+![image](https://github.com/user-attachments/assets/f920b819-01b3-428f-a959-1123001c9fc4)
 
 
 #### Penutup
